@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Request Envelope",
+  "type": "object",
+  "required": [
+    "request_id",
+    "timestamp",
+    "intent",
+    "user",
+    "message"
+  ],
+  "properties": {
+    "request_id": {
+      "type": "string",
+      "description": "Unique identifier for the inbound request (UUID recommended)."
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 timestamp for when the request was received."
+    },
+    "intent": {
+      "type": "string",
+      "description": "Top-level user intent classification for routing.",
+      "enum": [
+        "answer_question",
+        "draft_content",
+        "run_tooling",
+        "manage_project",
+        "triage"
+      ]
+    },
+    "user": {
+      "type": "object",
+      "required": ["id"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique user identifier."
+        },
+        "role": {
+          "type": "string",
+          "description": "Optional role or persona for the requester."
+        },
+        "locale": {
+          "type": "string",
+          "description": "BCP 47 locale string provided by the client."
+        }
+      }
+    },
+    "channel": {
+      "type": "string",
+      "description": "Source channel for the request (e.g., api, cli, slack)."
+    },
+    "message": {
+      "type": "string",
+      "description": "Raw user message content."
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Optional metadata provided by the intake layer.",
+      "additionalProperties": true
+    }
+  },
+  "examples": [
+    {
+      "request_id": "c13d8d7f-4c13-45fb-9a37-5c40120c0f0a",
+      "timestamp": "2024-05-30T15:04:05Z",
+      "intent": "run_tooling",
+      "user": {
+        "id": "user-123",
+        "role": "developer",
+        "locale": "en-US"
+      },
+      "channel": "api",
+      "message": "Generate a rollout plan for the new feature and prepare a curl script to hit the staging API.",
+      "metadata": {
+        "auth": "token-123",
+        "session": "sess-789"
+      }
+    }
+  ]
+}
