@@ -1,34 +1,45 @@
 {
   "name": "specialist_scheduling",
-  "description": "Schedule stakeholders and coordinate timelines based on availability windows.",
-  "input_schema": "../schemas/router_plan.json",
-  "output_schema": "../schemas/specialist_result.json",
-  "tools": ["tools/tool_get_availability.json", "tools/tool_create_task.json"],
-  "steps": [
+  "nodes": [
     {
-      "id": "review_plan",
-      "action": "read_router_plan",
-      "output": "plan_context"
+      "parameters": {"httpMethod": "POST", "path": "specialist/scheduling", "options": {"responseMode": "lastNode"}},
+      "id": "WebhookScheduling",
+      "name": "Inbound Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [0, 240]
     },
     {
-      "id": "pull_calendars",
-      "action": "call_tool",
-      "tool": "tool_get_availability",
-      "side_effects": ["read_only"],
-      "output": "availability"
+      "parameters": {
+        "operation": "chat",
+        "model": "gpt-4o-mini",
+        "messages": [
+          {"message": "You are the scheduling specialist. Extract attendees, time ranges, and constraints. Use tool_get_availability when calendars are required. Return JSON with summary, preferences, and tool_invocations.", "role": "system"},
+          {"message": "{{$json.message}}", "role": "user"}
+        ],
+        "temperature": 0.35
+      },
+      "id": "SchedulingAgent",
+      "name": "Scheduling Agent",
+      "type": "n8n-nodes-base.openAIAssistant",
+      "typeVersion": 1,
+      "position": [280, 240]
     },
     {
-      "id": "draft_schedule",
-      "action": "build_schedule",
-      "inputs": ["plan_context", "availability"],
-      "output": "schedule_notes"
-    },
-    {
-      "id": "create_tasks",
-      "action": "call_tool",
-      "tool": "tool_create_task",
-      "side_effects": ["write_data"],
-      "output": "task_payload"
+      "parameters": {"mode": "passThrough", "options": {"responseCode": 200, "responseData": "allEntries"}},
+      "id": "Respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [540, 240]
     }
-  ]
+  ],
+  "connections": {
+    "Inbound Webhook": {"main": [[{"node": "Scheduling Agent", "type": "main", "index": 0}]]},
+    "Scheduling Agent": {"main": [[{"node": "Respond", "type": "main", "index": 0}]]}
+  },
+  "settings": {"timezone": "UTC"},
+  "versionId": "specialist-scheduling-n8n-export",
+  "id": "specialist_scheduling",
+  "tags": []
 }

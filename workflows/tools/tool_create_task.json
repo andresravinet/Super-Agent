@@ -1,20 +1,39 @@
 {
   "name": "tool_create_task",
-  "description": "Create or update operational tasks in the work tracker.",
-  "expected_side_effects": ["write_data"],
-  "input": {
-    "required": ["title", "owner", "due_date"],
-    "properties": {
-      "title": {"type": "string"},
-      "owner": {"type": "string"},
-      "due_date": {"type": "string", "format": "date"},
-      "labels": {
-        "type": "array",
-        "items": {"type": "string"}
-      }
+  "nodes": [
+    {
+      "parameters": {"httpMethod": "POST", "path": "tools/create_task", "options": {"responseMode": "lastNode"}},
+      "id": "WebhookCreateTask",
+      "name": "Inbound Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [0, 200]
+    },
+    {
+      "parameters": {
+        "functionCode": "const input = $json; return [{ json: { task: { title: input.title || input.message, due: input.due || null, priority: input.priority || 'normal', notes: input.notes || '' }, status: 'created' } }];"
+      },
+      "id": "CreateTask",
+      "name": "Create Task",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [260, 200]
+    },
+    {
+      "parameters": {"mode": "passThrough", "options": {"responseCode": 200, "responseData": "allEntries"}},
+      "id": "Respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [520, 200]
     }
+  ],
+  "connections": {
+    "Inbound Webhook": {"main": [[{"node": "Create Task", "type": "main", "index": 0}]]},
+    "Create Task": {"main": [[{"node": "Respond", "type": "main", "index": 0}]]}
   },
-  "output": {
-    "task_id": "Identifier returned from the task system"
-  }
+  "settings": {"timezone": "UTC"},
+  "versionId": "tool-create-task-n8n-export",
+  "id": "tool_create_task",
+  "tags": []
 }

@@ -1,48 +1,99 @@
 {
   "name": "main_orchestrator",
-  "description": "Top-level orchestrator that validates requests, routes them through specialists, and enforces approval for risky tool use.",
-  "entrypoint": "router",
-  "policies": {
-    "requires_approval_for": ["write_data", "external_api", "financial", "user_visible_change"],
-    "safe_side_effects": ["none", "read_only"],
-    "approval_workflow": "approval_gate"
-  },
-  "specialists": {
-    "operations": "specialist_ops",
-    "research": "specialist_research",
-    "product": "specialist_comms",
-    "generalist": "specialist_research",
-    "approval": "approval_gate"
-  },
-  "flow": [
+  "nodes": [
     {
-      "id": "route",
-      "uses": "router",
-      "input": "../schemas/request_envelope.json",
-      "output": "router_plan"
-    },
-    {
-      "id": "approval_gate",
-      "condition": "intersects(router_plan.side_effects, policies.requires_approval_for)",
-      "uses": "approval_gate",
-      "output": "approval_result"
-    },
-    {
-      "id": "dispatch_specialist",
-      "on": "router_plan.specialist",
-      "targets": {
-        "operations": "specialist_ops",
-        "research": "specialist_research",
-        "product": "specialist_comms",
-        "generalist": "specialist_research"
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "main_orchestrator",
+        "options": {
+          "responseMode": "lastNode"
+        }
       },
-      "output": "specialist_result"
+      "id": "WebhookMain",
+      "name": "Inbound Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [0, 200]
     },
     {
-      "id": "finalize",
-      "action": "compile_result",
-      "inputs": ["router_plan", "approval_result", "specialist_result"],
-      "output_schema": "../schemas/specialist_result.json"
+      "parameters": {
+        "operation": "chat",
+        "model": "gpt-4o-mini",
+        "messages": [
+          {
+            "message": "You are the orchestrator. Review the request envelope and craft a high level delivery plan, including required specialist lane (research, comms, ops, scheduling) and whether approval is needed before executing tools. Return JSON with plan, lane, needs_approval, and tool_suggestions (array).",
+            "role": "system"
+          },
+          {
+            "message": "{{$json.message}}",
+            "role": "user"
+          }
+        ],
+        "temperature": 0.3
+      },
+      "id": "Planner",
+      "name": "Planner Agent",
+      "type": "n8n-nodes-base.openAIAssistant",
+      "typeVersion": 1,
+      "position": [260, 200]
+    },
+    {
+      "parameters": {
+        "authentication": "none",
+        "url": "={{ 'https://example.com/specialist/' + ($json.lane || 'comms') }}",
+        "method": "POST",
+        "sendBody": true,
+        "jsonParameters": true,
+        "options": {
+          "ignoreResponseCode": true
+        },
+        "bodyParametersJson": "={\n  \"message\": $json.message,\n  \"plan\": $json.plan || $json.data?.plan,\n  \"tool_suggestions\": $json.tool_suggestions || [],\n  \"needs_approval\": $json.needs_approval || false\n}"
+      },
+      "id": "DispatchSpecialist",
+      "name": "Dispatch to Specialist",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [520, 200]
+    },
+    {
+      "parameters": {
+        "functionCode": "return [{ json: { plan: $json.plan || $json.data?.plan, lane: $json.lane || $json.data?.lane, needs_approval: $json.needs_approval || false, tool_suggestions: $json.tool_suggestions || [], dispatched: true, downstream_status: $json.body || 'sent' } }];"
+      },
+      "id": "Finalize",
+      "name": "Finalize Response",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [780, 200]
     }
-  ]
+  ],
+  "connections": {
+    "Inbound Webhook": {
+      "main": [
+        [
+          {"node": "Planner Agent", "type": "main", "index": 0}
+        ]
+      ]
+    },
+    "Planner Agent": {
+      "main": [
+        [
+          {"node": "Dispatch to Specialist", "type": "main", "index": 0}
+        ]
+      ]
+    },
+    "Dispatch to Specialist": {
+      "main": [
+        [
+          {"node": "Finalize Response", "type": "main", "index": 0}
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "timezone": "UTC",
+    "executionTimeout": 900
+  },
+  "versionId": "main-orchestrator-n8n-export",
+  "id": "main_orchestrator",
+  "tags": []
 }

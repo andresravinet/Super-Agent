@@ -1,17 +1,45 @@
 {
   "name": "tool_draft_message",
-  "description": "Draft channel-appropriate messages for stakeholders.",
-  "expected_side_effects": ["user_visible_change"],
-  "input": {
-    "required": ["audience", "topic", "tone"],
-    "properties": {
-      "audience": {"type": "string"},
-      "topic": {"type": "string"},
-      "tone": {"type": "string"},
-      "call_to_action": {"type": "string"}
+  "nodes": [
+    {
+      "parameters": {"httpMethod": "POST", "path": "tools/draft_message", "options": {"responseMode": "lastNode"}},
+      "id": "WebhookDraftMessage",
+      "name": "Inbound Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [0, 200]
+    },
+    {
+      "parameters": {
+        "operation": "chat",
+        "model": "gpt-4o-mini",
+        "messages": [
+          {"message": "You are a drafting tool. Create a concise, friendly message using the provided context.", "role": "system"},
+          {"message": "{{$json.prompt || $json.message}}", "role": "user"}
+        ],
+        "temperature": 0.45
+      },
+      "id": "DraftTool",
+      "name": "Draft Tool",
+      "type": "n8n-nodes-base.openAIAssistant",
+      "typeVersion": 1,
+      "position": [260, 200]
+    },
+    {
+      "parameters": {"mode": "passThrough", "options": {"responseCode": 200, "responseData": "allEntries"}},
+      "id": "Respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [520, 200]
     }
+  ],
+  "connections": {
+    "Inbound Webhook": {"main": [[{"node": "Draft Tool", "type": "main", "index": 0}]]},
+    "Draft Tool": {"main": [[{"node": "Respond", "type": "main", "index": 0}]]}
   },
-  "output": {
-    "message": "Drafted communication ready for approval or sending"
-  }
+  "settings": {"timezone": "UTC"},
+  "versionId": "tool-draft-message-n8n-export",
+  "id": "tool_draft_message",
+  "tags": []
 }

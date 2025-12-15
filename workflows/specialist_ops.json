@@ -1,28 +1,45 @@
 {
   "name": "specialist_ops",
-  "description": "Execute operational tasks and orchestrate task creation for delivery teams.",
-  "input_schema": "../schemas/router_plan.json",
-  "output_schema": "../schemas/specialist_result.json",
-  "tools": ["tools/tool_create_task.json", "tools/tool_draft_message.json"],
-  "steps": [
+  "nodes": [
     {
-      "id": "review_plan",
-      "action": "read_router_plan",
-      "output": "plan_context"
+      "parameters": {"httpMethod": "POST", "path": "specialist/ops", "options": {"responseMode": "lastNode"}},
+      "id": "WebhookOps",
+      "name": "Inbound Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [0, 240]
     },
     {
-      "id": "create_delivery_task",
-      "action": "call_tool",
-      "tool": "tool_create_task",
-      "side_effects": ["write_data"],
-      "output": "created_task"
+      "parameters": {
+        "operation": "chat",
+        "model": "gpt-4o-mini",
+        "messages": [
+          {"message": "You are the operations specialist. Break the request into tasks, sequencing tool invocations (tool_create_task, tool_collect_research, tool_get_availability) as needed. Return JSON with work_breakdown, risk_items, and tool_invocations.", "role": "system"},
+          {"message": "{{$json.message}}", "role": "user"}
+        ],
+        "temperature": 0.35
+      },
+      "id": "OpsAgent",
+      "name": "Ops Agent",
+      "type": "n8n-nodes-base.openAIAssistant",
+      "typeVersion": 1,
+      "position": [280, 240]
     },
     {
-      "id": "notify_team",
-      "action": "call_tool",
-      "tool": "tool_draft_message",
-      "side_effects": ["user_visible_change"],
-      "output": "notification"
+      "parameters": {"mode": "passThrough", "options": {"responseCode": 200, "responseData": "allEntries"}},
+      "id": "Respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [540, 240]
     }
-  ]
+  ],
+  "connections": {
+    "Inbound Webhook": {"main": [[{"node": "Ops Agent", "type": "main", "index": 0}]]},
+    "Ops Agent": {"main": [[{"node": "Respond", "type": "main", "index": 0}]]}
+  },
+  "settings": {"timezone": "UTC"},
+  "versionId": "specialist-ops-n8n-export",
+  "id": "specialist_ops",
+  "tags": []
 }

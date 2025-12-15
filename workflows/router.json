@@ -1,56 +1,112 @@
 {
   "name": "router",
-  "description": "Classify inbound envelopes and route them to the correct specialist pipeline with risk-aware metadata.",
-  "input_schema": "../schemas/request_envelope.json",
-  "output_schema": "../schemas/router_plan.json",
-  "routing_table": {
-    "answer_question": "research",
-    "draft_content": "product",
-    "run_tooling": "operations",
-    "manage_project": "operations",
-    "triage": "generalist"
-  },
-  "risk_rules": {
-    "read_only_channels": ["api", "cli"],
-    "default_side_effects": ["none"],
-    "write_indicators": ["deploy", "update", "delete", "notify", "schedule"],
-    "approval_triggers": ["write_data", "external_api", "financial", "user_visible_change"]
-  },
-  "steps": [
+  "nodes": [
     {
-      "id": "ingest",
-      "action": "validate_input",
-      "schema": "../schemas/request_envelope.json",
-      "output": "envelope"
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "router",
+        "options": {
+          "responseMode": "lastNode"
+        }
+      },
+      "id": "WebhookRouter",
+      "name": "Inbound Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [0, 300]
     },
     {
-      "id": "classify_intent",
-      "action": "nlc_classification",
-      "output": "intent",
-      "notes": "Map user message to one of the known intents for downstream routing."
+      "parameters": {
+        "mode": "keepKeyMatches",
+        "specifications": {
+          "fieldsUi": {
+            "field": [
+              {"fieldName": "message", "dataType": "string"},
+              {"fieldName": "channel", "dataType": "string"},
+              {"fieldName": "side_effects", "dataType": "string"}
+            ]
+          }
+        }
+      },
+      "id": "CleanEnvelope",
+      "name": "Validate Envelope",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [240, 300]
     },
     {
-      "id": "choose_specialist",
-      "action": "table_lookup",
-      "input": "intent",
-      "mapping": "routing_table",
-      "output": "specialist"
+      "parameters": {
+        "operation": "chat",
+        "model": "gpt-4o-mini",
+        "messages": [
+          {
+            "message": "You are the router. Classify the request intent (answer_question, draft_content, run_tooling, manage_project, triage) and suggest a specialist lane (research, product, operations, generalist). Return JSON with keys intent, specialist, risk_flags (array).",
+            "role": "system"
+          },
+          {
+            "message": "{{$json.message}}",
+            "role": "user"
+          }
+        ],
+        "temperature": 0.2
+      },
+      "id": "RouterAgent",
+      "name": "AI Router",
+      "type": "n8n-nodes-base.openAIAssistant",
+      "typeVersion": 1,
+      "position": [520, 300]
     },
     {
-      "id": "assess_risk",
-      "action": "risk_scoring",
-      "signals": ["channel", "message", "intent"],
-      "side_effects": "derived_from_message",
-      "output": "risk_level"
-    },
-    {
-      "id": "emit_plan",
-      "action": "assemble",
-      "inputs": ["intent", "specialist", "risk_level"],
-      "side_effects": "side_effects",
-      "approver_required": true,
-      "constraints": ["Honor safety policies", "Route writes through approval"],
-      "output": "router_plan"
+      "parameters": {
+        "functionCode": "return [{\n  json: {\n    intent: $json.intent || $json.data?.intent || 'triage',\n    specialist: $json.specialist || $json.data?.specialist || 'generalist',\n    risk_flags: $json.risk_flags || $json.data?.risk_flags || [],\n    original: $json\n  }\n}];"
+      },
+      "id": "Normalize",
+      "name": "Normalize Response",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [780, 300]
     }
-  ]
+  ],
+  "connections": {
+    "Inbound Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Envelope",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Envelope": {
+      "main": [
+        [
+          {
+            "node": "AI Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Router": {
+      "main": [
+        [
+          {
+            "node": "Normalize Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "timezone": "UTC",
+    "executionTimeout": 600
+  },
+  "versionId": "router-n8n-export",
+  "id": "router",
+  "tags": []
 }
