@@ -1,21 +1,45 @@
 {
   "name": "tool_collect_research",
-  "description": "Fetch and summarize research sources from trusted endpoints.",
-  "expected_side_effects": ["external_api"],
-  "input": {
-    "required": ["queries", "sources"],
-    "properties": {
-      "queries": {
-        "type": "array",
-        "items": {"type": "string"}
+  "nodes": [
+    {
+      "parameters": {"httpMethod": "POST", "path": "tools/collect_research", "options": {"responseMode": "lastNode"}},
+      "id": "WebhookResearchTool",
+      "name": "Inbound Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [0, 200]
+    },
+    {
+      "parameters": {
+        "operation": "chat",
+        "model": "gpt-4o-mini",
+        "messages": [
+          {"message": "You are a research collection tool. Given a query, summarize findings and return bullet points.", "role": "system"},
+          {"message": "{{$json.query || $json.message}}", "role": "user"}
+        ],
+        "temperature": 0.25
       },
-      "sources": {
-        "type": "array",
-        "items": {"type": "string"}
-      }
+      "id": "ResearchTool",
+      "name": "Research Tool",
+      "type": "n8n-nodes-base.openAIAssistant",
+      "typeVersion": 1,
+      "position": [260, 200]
+    },
+    {
+      "parameters": {"mode": "passThrough", "options": {"responseCode": 200, "responseData": "allEntries"}},
+      "id": "Respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [520, 200]
     }
+  ],
+  "connections": {
+    "Inbound Webhook": {"main": [[{"node": "Research Tool", "type": "main", "index": 0}]]},
+    "Research Tool": {"main": [[{"node": "Respond", "type": "main", "index": 0}]]}
   },
-  "output": {
-    "citations": "List of source excerpts and URLs"
-  }
+  "settings": {"timezone": "UTC"},
+  "versionId": "tool-collect-research-n8n-export",
+  "id": "tool_collect_research",
+  "tags": []
 }

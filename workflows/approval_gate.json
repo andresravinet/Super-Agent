@@ -1,34 +1,78 @@
 {
   "name": "approval_gate",
-  "description": "Workflow that pauses execution until risky tool calls are reviewed.",
-  "input_schema": "../schemas/tool_call.json",
-  "outputs": {
-    "approved": true,
-    "approver_notes": ""
-  },
-  "criteria": {
-    "requires_manual_review": ["write_data", "external_api", "financial", "user_visible_change"],
-    "auto_approve": ["none", "read_only"]
-  },
-  "steps": [
+  "nodes": [
     {
-      "id": "check_side_effects",
-      "action": "evaluate",
-      "condition": "intersects(tool_call.expected_side_effects, criteria.requires_manual_review)",
-      "output": "needs_approval"
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "approval_gate",
+        "options": {
+          "responseMode": "lastNode"
+        }
+      },
+      "id": "WebhookApproval",
+      "name": "Inbound Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [0, 200]
     },
     {
-      "id": "collect_context",
-      "action": "summarize",
-      "inputs": ["tool_call.tool_name", "tool_call.intent", "tool_call.specialist", "tool_call.risk_level"],
-      "output": "approval_packet"
+      "parameters": {
+        "operation": "chat",
+        "model": "gpt-4o-mini",
+        "messages": [
+          {
+            "message": "You are the safety and approval gate. Review the proposed plan and side effects. Decide if the action requires explicit approval. Respond with JSON: {approved: boolean, rationale: string, required_actions: array}.",
+            "role": "system"
+          },
+          {
+            "message": "{{$json.plan || $json.summary}}",
+            "role": "user"
+          }
+        ],
+        "temperature": 0.1
+      },
+      "id": "ApprovalAgent",
+      "name": "Approval Agent",
+      "type": "n8n-nodes-base.openAIAssistant",
+      "typeVersion": 1,
+      "position": [260, 200]
     },
     {
-      "id": "approval_decision",
-      "action": "human_or_policy_gate",
-      "input": "approval_packet",
-      "output": "approved",
-      "notes": "Fall back to automated guardrails when manual approvers are not available."
+      "parameters": {
+        "mode": "passThrough",
+        "options": {
+          "responseCode": 200,
+          "responseData": "allEntries"
+        }
+      },
+      "id": "Respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [520, 200]
     }
-  ]
+  ],
+  "connections": {
+    "Inbound Webhook": {
+      "main": [
+        [
+          {"node": "Approval Agent", "type": "main", "index": 0}
+        ]
+      ]
+    },
+    "Approval Agent": {
+      "main": [
+        [
+          {"node": "Respond", "type": "main", "index": 0}
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "timezone": "UTC",
+    "executionTimeout": 600
+  },
+  "versionId": "approval-gate-n8n-export",
+  "id": "approval_gate",
+  "tags": []
 }

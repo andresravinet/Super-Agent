@@ -1,27 +1,45 @@
 {
   "name": "specialist_research",
-  "description": "Perform research and synthesize findings for routed questions.",
-  "input_schema": "../schemas/router_plan.json",
-  "output_schema": "../schemas/specialist_result.json",
-  "tools": ["tools/tool_collect_research.json"],
-  "steps": [
+  "nodes": [
     {
-      "id": "review_plan",
-      "action": "read_router_plan",
-      "output": "plan_context"
+      "parameters": {"httpMethod": "POST", "path": "specialist/research", "options": {"responseMode": "lastNode"}},
+      "id": "WebhookResearch",
+      "name": "Inbound Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [0, 240]
     },
     {
-      "id": "collect_sources",
-      "action": "call_tool",
-      "tool": "tool_collect_research",
-      "side_effects": ["external_api"],
-      "output": "sources"
+      "parameters": {
+        "operation": "chat",
+        "model": "gpt-4o-mini",
+        "messages": [
+          {"message": "You are the research specialist. Extract key questions, sources to check, and propose tool usage (tool_collect_research). Provide JSON with findings, suggested_sources, and tool_invocations.", "role": "system"},
+          {"message": "{{$json.message}}", "role": "user"}
+        ],
+        "temperature": 0.35
+      },
+      "id": "ResearchAgent",
+      "name": "Research Agent",
+      "type": "n8n-nodes-base.openAIAssistant",
+      "typeVersion": 1,
+      "position": [280, 240]
     },
     {
-      "id": "summarize",
-      "action": "synthesize",
-      "inputs": ["sources"],
-      "output": "research_summary"
+      "parameters": {"mode": "passThrough", "options": {"responseCode": 200, "responseData": "allEntries"}},
+      "id": "Respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [540, 240]
     }
-  ]
+  ],
+  "connections": {
+    "Inbound Webhook": {"main": [[{"node": "Research Agent", "type": "main", "index": 0}]]},
+    "Research Agent": {"main": [[{"node": "Respond", "type": "main", "index": 0}]]}
+  },
+  "settings": {"timezone": "UTC"},
+  "versionId": "specialist-research-n8n-export",
+  "id": "specialist_research",
+  "tags": []
 }

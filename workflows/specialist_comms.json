@@ -1,28 +1,52 @@
 {
   "name": "specialist_comms",
-  "description": "Craft communications and outbound messaging once routing is confirmed.",
-  "input_schema": "../schemas/router_plan.json",
-  "output_schema": "../schemas/specialist_result.json",
-  "tools": ["tools/tool_draft_message.json", "tools/tool_get_availability.json"],
-  "steps": [
+  "nodes": [
     {
-      "id": "review_request",
-      "action": "read_router_plan",
-      "output": "plan_context"
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "specialist/comms",
+        "options": {"responseMode": "lastNode"}
+      },
+      "id": "WebhookComms",
+      "name": "Inbound Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [0, 200]
     },
     {
-      "id": "check_timing",
-      "action": "call_tool",
-      "tool": "tool_get_availability",
-      "side_effects": ["read_only"],
-      "output": "availability"
+      "parameters": {
+        "operation": "chat",
+        "model": "gpt-4o-mini",
+        "messages": [
+          {"message": "You are the communications specialist. Craft concise, user-ready responses and propose messaging tasks. Include tool calls when needed (tool_draft_message). Return JSON with draft, next_steps, and tool_invocations array.", "role": "system"},
+          {"message": "{{$json.message}}", "role": "user"}
+        ],
+        "temperature": 0.4
+      },
+      "id": "CommsAgent",
+      "name": "Comms Agent",
+      "type": "n8n-nodes-base.openAIAssistant",
+      "typeVersion": 1,
+      "position": [280, 200]
     },
     {
-      "id": "draft_message",
-      "action": "call_tool",
-      "tool": "tool_draft_message",
-      "side_effects": ["user_visible_change"],
-      "output": "message"
+      "parameters": {
+        "mode": "passThrough",
+        "options": {"responseCode": 200, "responseData": "allEntries"}
+      },
+      "id": "Respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [540, 200]
     }
-  ]
+  ],
+  "connections": {
+    "Inbound Webhook": {"main": [[{"node": "Comms Agent", "type": "main", "index": 0}]]},
+    "Comms Agent": {"main": [[{"node": "Respond", "type": "main", "index": 0}]]}
+  },
+  "settings": {"timezone": "UTC"},
+  "versionId": "specialist-comms-n8n-export",
+  "id": "specialist_comms",
+  "tags": []
 }

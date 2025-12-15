@@ -1,24 +1,39 @@
 {
   "name": "tool_get_availability",
-  "description": "Read-only lookup for attendee availability across connected calendars.",
-  "expected_side_effects": ["read_only"],
-  "input": {
-    "required": ["attendees", "timeframe"],
-    "properties": {
-      "attendees": {
-        "type": "array",
-        "items": {"type": "string"}
+  "nodes": [
+    {
+      "parameters": {"httpMethod": "POST", "path": "tools/get_availability", "options": {"responseMode": "lastNode"}},
+      "id": "WebhookAvailability",
+      "name": "Inbound Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [0, 200]
+    },
+    {
+      "parameters": {
+        "functionCode": "const attendees = $json.attendees || []; const window = $json.window || 'next week'; return [{ json: { request: { attendees, window }, slots: attendees.map((p,i)=>({ attendee:p, slot:`${window} slot ${i+1}` })), status: 'ok' } }];"
       },
-      "timeframe": {
-        "type": "object",
-        "properties": {
-          "start": {"type": "string", "format": "date-time"},
-          "end": {"type": "string", "format": "date-time"}
-        }
-      }
+      "id": "Availability",
+      "name": "Lookup Availability",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 2,
+      "position": [260, 200]
+    },
+    {
+      "parameters": {"mode": "passThrough", "options": {"responseCode": 200, "responseData": "allEntries"}},
+      "id": "Respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [520, 200]
     }
+  ],
+  "connections": {
+    "Inbound Webhook": {"main": [[{"node": "Lookup Availability", "type": "main", "index": 0}]]},
+    "Lookup Availability": {"main": [[{"node": "Respond", "type": "main", "index": 0}]]}
   },
-  "output": {
-    "availability": "List of ISO-8601 windows per attendee"
-  }
+  "settings": {"timezone": "UTC"},
+  "versionId": "tool-get-availability-n8n-export",
+  "id": "tool_get_availability",
+  "tags": []
 }
