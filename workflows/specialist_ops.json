@@ -1,0 +1,28 @@
+{
+  "name": "specialist_ops",
+  "description": "Execute operational tasks and orchestrate task creation for delivery teams.",
+  "input_schema": "../schemas/router_plan.json",
+  "output_schema": "../schemas/specialist_result.json",
+  "tools": ["tools/tool_create_task.json", "tools/tool_draft_message.json"],
+  "steps": [
+    {
+      "id": "review_plan",
+      "action": "read_router_plan",
+      "output": "plan_context"
+    },
+    {
+      "id": "create_delivery_task",
+      "action": "call_tool",
+      "tool": "tool_create_task",
+      "side_effects": ["write_data"],
+      "output": "created_task"
+    },
+    {
+      "id": "notify_team",
+      "action": "call_tool",
+      "tool": "tool_draft_message",
+      "side_effects": ["user_visible_change"],
+      "output": "notification"
+    }
+  ]
+}

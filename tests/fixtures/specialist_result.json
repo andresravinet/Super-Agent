@@ -1,0 +1,48 @@
+{
+  "specialist": "operations",
+  "status": "planned",
+  "summary": "Prepared deployment review tasks and drafted team notification.",
+  "risk_level": "high",
+  "side_effects": ["write_data", "user_visible_change"],
+  "outputs": [
+    {
+      "title": "Task Plan",
+      "content": "1. Create review task\n2. Invite stakeholders\n3. Notify team"
+    },
+    {
+      "title": "Notification",
+      "content": "Drafted Slack announcement for the project channel."
+    }
+  ],
+  "tool_calls": [
+    {
+      "id": "call-read",
+      "tool_name": "tool_get_availability",
+      "intent": "run_tooling",
+      "specialist": "operations",
+      "risk_level": "medium",
+      "expected_side_effects": ["read_only"],
+      "input": {
+        "attendees": ["user-42", "ops-team"],
+        "timeframe": {"start": "2024-06-02T10:00:00Z", "end": "2024-06-02T18:00:00Z"}
+      },
+      "status": "succeeded",
+      "result": {"availability": []}
+    },
+    {
+      "id": "call-write",
+      "tool_name": "tool_create_task",
+      "intent": "run_tooling",
+      "specialist": "operations",
+      "risk_level": "high",
+      "expected_side_effects": ["write_data"],
+      "input": {
+        "title": "Schedule deployment review",
+        "owner": "ops-team",
+        "due_date": "2024-06-03",
+        "labels": ["deployment", "review"]
+      },
+      "status": "pending"
+    }
+  ]
+}

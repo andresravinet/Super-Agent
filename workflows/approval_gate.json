@@ -1,0 +1,34 @@
+{
+  "name": "approval_gate",
+  "description": "Workflow that pauses execution until risky tool calls are reviewed.",
+  "input_schema": "../schemas/tool_call.json",
+  "outputs": {
+    "approved": true,
+    "approver_notes": ""
+  },
+  "criteria": {
+    "requires_manual_review": ["write_data", "external_api", "financial", "user_visible_change"],
+    "auto_approve": ["none", "read_only"]
+  },
+  "steps": [
+    {
+      "id": "check_side_effects",
+      "action": "evaluate",
+      "condition": "intersects(tool_call.expected_side_effects, criteria.requires_manual_review)",
+      "output": "needs_approval"
+    },
+    {
+      "id": "collect_context",
+      "action": "summarize",
+      "inputs": ["tool_call.tool_name", "tool_call.intent", "tool_call.specialist", "tool_call.risk_level"],
+      "output": "approval_packet"
+    },
+    {
+      "id": "approval_decision",
+      "action": "human_or_policy_gate",
+      "input": "approval_packet",
+      "output": "approved",
+      "notes": "Fall back to automated guardrails when manual approvers are not available."
+    }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "name": "tool_get_availability",
+  "description": "Read-only lookup for attendee availability across connected calendars.",
+  "expected_side_effects": ["read_only"],
+  "input": {
+    "required": ["attendees", "timeframe"],
+    "properties": {
+      "attendees": {
+        "type": "array",
+        "items": {"type": "string"}
+      },
+      "timeframe": {
+        "type": "object",
+        "properties": {
+          "start": {"type": "string", "format": "date-time"},
+          "end": {"type": "string", "format": "date-time"}
+        }
+      }
+    }
+  },
+  "output": {
+    "availability": "List of ISO-8601 windows per attendee"
+  }
+}

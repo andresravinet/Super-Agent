@@ -1,0 +1,34 @@
+{
+  "name": "specialist_scheduling",
+  "description": "Schedule stakeholders and coordinate timelines based on availability windows.",
+  "input_schema": "../schemas/router_plan.json",
+  "output_schema": "../schemas/specialist_result.json",
+  "tools": ["tools/tool_get_availability.json", "tools/tool_create_task.json"],
+  "steps": [
+    {
+      "id": "review_plan",
+      "action": "read_router_plan",
+      "output": "plan_context"
+    },
+    {
+      "id": "pull_calendars",
+      "action": "call_tool",
+      "tool": "tool_get_availability",
+      "side_effects": ["read_only"],
+      "output": "availability"
+    },
+    {
+      "id": "draft_schedule",
+      "action": "build_schedule",
+      "inputs": ["plan_context", "availability"],
+      "output": "schedule_notes"
+    },
+    {
+      "id": "create_tasks",
+      "action": "call_tool",
+      "tool": "tool_create_task",
+      "side_effects": ["write_data"],
+      "output": "task_payload"
+    }
+  ]
+}

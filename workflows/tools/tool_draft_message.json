@@ -1,0 +1,17 @@
+{
+  "name": "tool_draft_message",
+  "description": "Draft channel-appropriate messages for stakeholders.",
+  "expected_side_effects": ["user_visible_change"],
+  "input": {
+    "required": ["audience", "topic", "tone"],
+    "properties": {
+      "audience": {"type": "string"},
+      "topic": {"type": "string"},
+      "tone": {"type": "string"},
+      "call_to_action": {"type": "string"}
+    }
+  },
+  "output": {
+    "message": "Drafted communication ready for approval or sending"
+  }
+}

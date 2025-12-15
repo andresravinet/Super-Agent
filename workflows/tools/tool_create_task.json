@@ -1,0 +1,20 @@
+{
+  "name": "tool_create_task",
+  "description": "Create or update operational tasks in the work tracker.",
+  "expected_side_effects": ["write_data"],
+  "input": {
+    "required": ["title", "owner", "due_date"],
+    "properties": {
+      "title": {"type": "string"},
+      "owner": {"type": "string"},
+      "due_date": {"type": "string", "format": "date"},
+      "labels": {
+        "type": "array",
+        "items": {"type": "string"}
+      }
+    }
+  },
+  "output": {
+    "task_id": "Identifier returned from the task system"
+  }
+}

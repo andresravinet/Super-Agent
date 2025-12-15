@@ -1,0 +1,13 @@
+{
+  "intent": "run_tooling",
+  "specialist": "operations",
+  "confidence": 0.9,
+  "risk_level": "high",
+  "side_effects": ["write_data", "user_visible_change"],
+  "rationale": "Operational request to schedule and notify team members.",
+  "approver_required": true,
+  "constraints": [
+    "Route any write operations through approval gate",
+    "Limit notifications to project channel"
+  ]
+}

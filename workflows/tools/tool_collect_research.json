@@ -1,0 +1,21 @@
+{
+  "name": "tool_collect_research",
+  "description": "Fetch and summarize research sources from trusted endpoints.",
+  "expected_side_effects": ["external_api"],
+  "input": {
+    "required": ["queries", "sources"],
+    "properties": {
+      "queries": {
+        "type": "array",
+        "items": {"type": "string"}
+      },
+      "sources": {
+        "type": "array",
+        "items": {"type": "string"}
+      }
+    }
+  },
+  "output": {
+    "citations": "List of source excerpts and URLs"
+  }
+}
