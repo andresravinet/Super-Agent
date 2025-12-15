@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Tool Call",
+  "type": "object",
+  "required": [
+    "id",
+    "tool_name",
+    "intent",
+    "specialist",
+    "input",
+    "risk_level",
+    "expected_side_effects",
+    "status"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique identifier for the tool invocation."
+    },
+    "tool_name": {
+      "type": "string",
+      "description": "Name of the tool being invoked."
+    },
+    "intent": {
+      "type": "string",
+      "enum": [
+        "answer_question",
+        "draft_content",
+        "run_tooling",
+        "manage_project",
+        "triage"
+      ],
+      "description": "Intent that triggered this tool call."
+    },
+    "specialist": {
+      "type": "string",
+      "enum": [
+        "generalist",
+        "research",
+        "engineering",
+        "product",
+        "operations",
+        "approval"
+      ],
+      "description": "Specialist responsible for the invocation."
+    },
+    "risk_level": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"],
+      "description": "Risk level before execution."
+    },
+    "expected_side_effects": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "none",
+          "read_only",
+          "write_data",
+          "external_api",
+          "financial",
+          "user_visible_change"
+        ]
+      },
+      "description": "Declared side effects from executing the tool."
+    },
+    "input": {
+      "description": "Serialized input payload for the tool.",
+      "oneOf": [
+        { "type": "string" },
+        { "type": "object" },
+        { "type": "array" }
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "succeeded", "failed"],
+      "description": "Execution status of the tool call."
+    },
+    "result": {
+      "description": "Structured result payload from the tool, if available.",
+      "oneOf": [
+        { "type": "string" },
+        { "type": "object" },
+        { "type": "array" }
+      ]
+    },
+    "error": {
+      "type": "string",
+      "description": "Error details when the status is failed."
+    }
+  },
+  "examples": [
+    {
+      "id": "call-42",
+      "tool_name": "http_request",
+      "intent": "run_tooling",
+      "specialist": "engineering",
+      "risk_level": "medium",
+      "expected_side_effects": ["external_api"],
+      "input": {
+        "method": "POST",
+        "url": "https://staging.example.com/api/deploy",
+        "body": {"env": "staging"}
+      },
+      "status": "succeeded",
+      "result": {
+        "status_code": 200,
+        "body": "Deployment triggered"
+      }
+    }
+  ]
+}

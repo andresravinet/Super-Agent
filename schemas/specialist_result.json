@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Specialist Result",
+  "type": "object",
+  "required": [
+    "specialist",
+    "status",
+    "summary",
+    "risk_level",
+    "side_effects",
+    "outputs"
+  ],
+  "properties": {
+    "specialist": {
+      "type": "string",
+      "enum": [
+        "generalist",
+        "research",
+        "engineering",
+        "product",
+        "operations",
+        "approval"
+      ],
+      "description": "The specialist producing this result."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["planned", "in_progress", "completed", "blocked", "error"],
+      "description": "Execution status of the specialist's work."
+    },
+    "summary": {
+      "type": "string",
+      "description": "High-level summary of the work done or planned."
+    },
+    "risk_level": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"],
+      "description": "Risk level derived from the specialist's plan or actions."
+    },
+    "side_effects": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "none",
+          "read_only",
+          "write_data",
+          "external_api",
+          "financial",
+          "user_visible_change"
+        ]
+      },
+      "description": "Side effects observed or expected from the specialist's actions."
+    },
+    "outputs": {
+      "type": "array",
+      "description": "Structured outputs such as plans, checklists, or messages.",
+      "items": {
+        "type": "object",
+        "required": ["title", "content"],
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Label for the output block."
+          },
+          "content": {
+            "type": "string",
+            "description": "Markdown-friendly content produced by the specialist."
+          }
+        }
+      }
+    },
+    "tool_calls": {
+      "type": "array",
+      "description": "Tool invocations the specialist executed or plans to execute.",
+      "items": {
+        "$ref": "./tool_call.json"
+      }
+    },
+    "approver_notes": {
+      "type": "string",
+      "description": "Optional approval comments or safety mitigations."
+    }
+  },
+  "examples": [
+    {
+      "specialist": "engineering",
+      "status": "planned",
+      "summary": "Prepared migration steps and staged curl commands for the feature rollout.",
+      "risk_level": "high",
+      "side_effects": ["write_data", "external_api"],
+      "outputs": [
+        {
+          "title": "Rollout Checklist",
+          "content": "1. Enable feature flag in staging\n2. Run migration\n3. Smoke test endpoints"
+        }
+      ],
+      "tool_calls": [
+        {
+          "id": "call-1",
+          "tool_name": "curl",
+          "intent": "run_tooling",
+          "specialist": "engineering",
+          "risk_level": "high",
+          "expected_side_effects": ["external_api"],
+          "input": "curl -X POST https://staging.example.com/feature-flags/enable",
+          "status": "pending"
+        }
+      ],
+      "approver_notes": "Requires staging-only execution and rollback plan."
+    }
+  ]
+}
