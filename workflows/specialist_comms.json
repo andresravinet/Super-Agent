@@ -1,0 +1,28 @@
+{
+  "name": "specialist_comms",
+  "description": "Craft communications and outbound messaging once routing is confirmed.",
+  "input_schema": "../schemas/router_plan.json",
+  "output_schema": "../schemas/specialist_result.json",
+  "tools": ["tools/tool_draft_message.json", "tools/tool_get_availability.json"],
+  "steps": [
+    {
+      "id": "review_request",
+      "action": "read_router_plan",
+      "output": "plan_context"
+    },
+    {
+      "id": "check_timing",
+      "action": "call_tool",
+      "tool": "tool_get_availability",
+      "side_effects": ["read_only"],
+      "output": "availability"
+    },
+    {
+      "id": "draft_message",
+      "action": "call_tool",
+      "tool": "tool_draft_message",
+      "side_effects": ["user_visible_change"],
+      "output": "message"
+    }
+  ]
+}

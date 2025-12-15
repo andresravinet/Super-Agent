@@ -1,0 +1,13 @@
+{
+  "id": "read-1",
+  "tool_name": "tool_get_availability",
+  "intent": "run_tooling",
+  "specialist": "operations",
+  "risk_level": "low",
+  "expected_side_effects": ["read_only"],
+  "input": {
+    "attendees": ["user-42"],
+    "timeframe": {"start": "2024-06-02T10:00:00Z", "end": "2024-06-02T18:00:00Z"}
+  },
+  "status": "pending"
+}

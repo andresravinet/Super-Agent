@@ -1,0 +1,56 @@
+{
+  "name": "router",
+  "description": "Classify inbound envelopes and route them to the correct specialist pipeline with risk-aware metadata.",
+  "input_schema": "../schemas/request_envelope.json",
+  "output_schema": "../schemas/router_plan.json",
+  "routing_table": {
+    "answer_question": "research",
+    "draft_content": "product",
+    "run_tooling": "operations",
+    "manage_project": "operations",
+    "triage": "generalist"
+  },
+  "risk_rules": {
+    "read_only_channels": ["api", "cli"],
+    "default_side_effects": ["none"],
+    "write_indicators": ["deploy", "update", "delete", "notify", "schedule"],
+    "approval_triggers": ["write_data", "external_api", "financial", "user_visible_change"]
+  },
+  "steps": [
+    {
+      "id": "ingest",
+      "action": "validate_input",
+      "schema": "../schemas/request_envelope.json",
+      "output": "envelope"
+    },
+    {
+      "id": "classify_intent",
+      "action": "nlc_classification",
+      "output": "intent",
+      "notes": "Map user message to one of the known intents for downstream routing."
+    },
+    {
+      "id": "choose_specialist",
+      "action": "table_lookup",
+      "input": "intent",
+      "mapping": "routing_table",
+      "output": "specialist"
+    },
+    {
+      "id": "assess_risk",
+      "action": "risk_scoring",
+      "signals": ["channel", "message", "intent"],
+      "side_effects": "derived_from_message",
+      "output": "risk_level"
+    },
+    {
+      "id": "emit_plan",
+      "action": "assemble",
+      "inputs": ["intent", "specialist", "risk_level"],
+      "side_effects": "side_effects",
+      "approver_required": true,
+      "constraints": ["Honor safety policies", "Route writes through approval"],
+      "output": "router_plan"
+    }
+  ]
+}

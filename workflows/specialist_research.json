@@ -1,0 +1,27 @@
+{
+  "name": "specialist_research",
+  "description": "Perform research and synthesize findings for routed questions.",
+  "input_schema": "../schemas/router_plan.json",
+  "output_schema": "../schemas/specialist_result.json",
+  "tools": ["tools/tool_collect_research.json"],
+  "steps": [
+    {
+      "id": "review_plan",
+      "action": "read_router_plan",
+      "output": "plan_context"
+    },
+    {
+      "id": "collect_sources",
+      "action": "call_tool",
+      "tool": "tool_collect_research",
+      "side_effects": ["external_api"],
+      "output": "sources"
+    },
+    {
+      "id": "summarize",
+      "action": "synthesize",
+      "inputs": ["sources"],
+      "output": "research_summary"
+    }
+  ]
+}

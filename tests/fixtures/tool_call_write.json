@@ -1,0 +1,15 @@
+{
+  "id": "write-1",
+  "tool_name": "tool_create_task",
+  "intent": "run_tooling",
+  "specialist": "operations",
+  "risk_level": "high",
+  "expected_side_effects": ["write_data", "external_api"],
+  "input": {
+    "title": "Create deployment review task",
+    "owner": "ops-team",
+    "due_date": "2024-06-03",
+    "labels": ["deployment"]
+  },
+  "status": "pending"
+}

@@ -1,0 +1,48 @@
+{
+  "name": "main_orchestrator",
+  "description": "Top-level orchestrator that validates requests, routes them through specialists, and enforces approval for risky tool use.",
+  "entrypoint": "router",
+  "policies": {
+    "requires_approval_for": ["write_data", "external_api", "financial", "user_visible_change"],
+    "safe_side_effects": ["none", "read_only"],
+    "approval_workflow": "approval_gate"
+  },
+  "specialists": {
+    "operations": "specialist_ops",
+    "research": "specialist_research",
+    "product": "specialist_comms",
+    "generalist": "specialist_research",
+    "approval": "approval_gate"
+  },
+  "flow": [
+    {
+      "id": "route",
+      "uses": "router",
+      "input": "../schemas/request_envelope.json",
+      "output": "router_plan"
+    },
+    {
+      "id": "approval_gate",
+      "condition": "intersects(router_plan.side_effects, policies.requires_approval_for)",
+      "uses": "approval_gate",
+      "output": "approval_result"
+    },
+    {
+      "id": "dispatch_specialist",
+      "on": "router_plan.specialist",
+      "targets": {
+        "operations": "specialist_ops",
+        "research": "specialist_research",
+        "product": "specialist_comms",
+        "generalist": "specialist_research"
+      },
+      "output": "specialist_result"
+    },
+    {
+      "id": "finalize",
+      "action": "compile_result",
+      "inputs": ["router_plan", "approval_result", "specialist_result"],
+      "output_schema": "../schemas/specialist_result.json"
+    }
+  ]
+}
